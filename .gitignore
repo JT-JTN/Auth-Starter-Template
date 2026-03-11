@@ -3,6 +3,30 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# ── AI Assistant Tools ────────────────────────────────────────────────────────
+.claude/
+.gemini/
+.cursor/
+.augment/
+.codeium/
+.continue/
+.aider
+.aider.*
+*.aider
+.copilot/
+
+# ── Secrets & Environment ─────────────────────────────────────────────────────
+# appsettings.*.json files are intentionally tracked — they contain placeholder
+# values that guide configuration for anyone using this template.
+# Real secrets belong in User Secrets (dotnet user-secrets) or environment variables.
+.env
+.env.*
+!.env.example
+secrets.json
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+src/Api/logs/
+
 # User-specific files
 *.rsuser
 *.suo

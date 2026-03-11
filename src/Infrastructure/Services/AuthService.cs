@@ -34,10 +34,10 @@ public sealed class AuthService : IAuthService
         _dateTime = dateTime;
     }
 
-    public async Task<Result<TokenDto>> RegisterAsync(RegisterDto dto)
+    public async Task<Result> RegisterAsync(RegisterDto dto)
     {
         if (dto.Password != dto.ConfirmPassword)
-            return Result.Failure<TokenDto>("Passwords do not match");
+            return Result.Failure("Passwords do not match");
 
         var user = new User
         {
@@ -52,22 +52,15 @@ public sealed class AuthService : IAuthService
         if (!result.Succeeded)
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            return Result.Failure<TokenDto>(errors);
+            return Result.Failure(errors);
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = await _tokenService.GenerateAccessToken(user, roles);
-        var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
-        await _tokenRepository.SaveRefreshTokenAsync(refreshToken);
-        await _uow.SaveChangesAsync();
-
-        // Send confirmation email AFTER the user is fully persisted.
-        // Email is best-effort — failure is logged but does not fail registration.
+        // Send confirmation email. Email is best-effort — failure does not fail registration.
         var confirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(confirmToken));
         await _emailSender.SendEmailConfirmationAsync(user.Email!, user.UserName!, user.Id, encodedToken);
 
-        return Result.Success(new TokenDto(accessToken, refreshToken.Token));
+        return Result.Success();
     }
 
     public async Task<Result<TokenDto>> LoginAsync(LoginDto dto)

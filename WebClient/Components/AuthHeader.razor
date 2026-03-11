@@ -1,29 +1,50 @@
 @inject IAuthApiService AuthApi
+@inject IUserApiService UserApi
 @inject TokenStorageService TokenStorage
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
 
 <AuthorizeView>
     <Authorized Context="authCtx">
         <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
             <ActivatorContent>
-                <MudTooltip Text="@authCtx.User.Identity?.Name" Placement="Placement.Bottom">
+                <div @onclick="context.ToggleAsync"
+                     class="d-flex align-center gap-2"
+                     style="cursor:pointer; user-select:none; padding:4px 8px;">
                     @if (!string.IsNullOrEmpty(_profileImageUrl))
                     {
-                        <MudAvatar Class="cursor-pointer" Style="border: 2px solid var(--mud-palette-primary);">
-                            <MudImage Src="@_profileImageUrl" Alt="Profile" ObjectFit="ObjectFit.Cover" />
+                        <MudAvatar Style="width:32px; height:32px;">
+                            <MudImage Src="@_profileImageUrl" Alt="Profile"
+                                      ObjectFit="ObjectFit.Cover"
+                                      Style="width:100%; height:100%;" />
                         </MudAvatar>
                     }
                     else
                     {
-                        <MudAvatar Color="Color.Primary" Class="cursor-pointer" Style="font-weight:600">
-                            @GetInitials(authCtx.User.Identity?.Name)
+                        <MudAvatar Color="Color.Primary"
+                                   Style="width:32px; height:32px; font-size:.8rem; font-weight:600;">
+                            @GetInitials(authCtx)
                         </MudAvatar>
                     }
-                </MudTooltip>
+                    <MudText Typo="Typo.body2" Style="font-weight:500; color:inherit;">
+                        @GetDisplayName(authCtx)
+                    </MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown"
+                             Style="color:inherit; font-size:1.2rem;" />
+                </div>
             </ActivatorContent>
             <ChildContent>
+                <div class="px-4 py-2" style="min-width:220px;">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">
+                        @GetDisplayName(authCtx)
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @authCtx.User.FindFirst("email")?.Value
+                    </MudText>
+                </div>
+                <MudDivider />
                 <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/profile">My Profile</MudMenuItem>
-                <MudDivider Class="my-1" />
+                <MudDivider />
                 <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync" IconColor="Color.Error">
                     <MudText Color="Color.Error">Sign Out</MudText>
                 </MudMenuItem>
@@ -37,13 +58,16 @@
 </AuthorizeView>
 
 @code {
-    [Parameter] public string? ProfileImageUrl { get; set; }
-
     private string? _profileImageUrl;
 
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
-        _profileImageUrl = ProfileImageUrl;
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated != true) return;
+
+        var result = await UserApi.GetProfileAsync();
+        if (result.IsSuccess && result.Value is not null)
+            _profileImageUrl = result.Value.ProfileImageUrl;
     }
 
     private async Task LogoutAsync()
@@ -55,12 +79,22 @@
         Nav.NavigateTo("/login", forceLoad: false);
     }
 
-    private static string GetInitials(string? name)
+    private static string GetDisplayName(AuthenticationState ctx)
     {
-        if (string.IsNullOrWhiteSpace(name)) return "?";
-        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length >= 2
-            ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
-            : name[..1].ToUpperInvariant();
+        var given = ctx.User.FindFirst("given_name")?.Value;
+        var family = ctx.User.FindFirst("family_name")?.Value;
+        if (!string.IsNullOrWhiteSpace(given) || !string.IsNullOrWhiteSpace(family))
+            return $"{given} {family}".Trim();
+        return ctx.User.Identity?.Name ?? "User";
+    }
+
+    private static string GetInitials(AuthenticationState ctx)
+    {
+        var given = ctx.User.FindFirst("given_name")?.Value;
+        var family = ctx.User.FindFirst("family_name")?.Value;
+        if (!string.IsNullOrWhiteSpace(given) && !string.IsNullOrWhiteSpace(family))
+            return $"{given[0]}{family[0]}".ToUpperInvariant();
+        var name = ctx.User.Identity?.Name;
+        return string.IsNullOrWhiteSpace(name) ? "?" : name[..1].ToUpperInvariant();
     }
 }

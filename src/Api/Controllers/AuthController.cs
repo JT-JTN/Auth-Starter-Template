@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
         if (result.IsFailure)
             return BadRequest(new { result.Error });
 
-        return Ok(result.Value);
+        return Ok(new { message = "Registration successful. Please check your email to confirm your account." });
     }
 
     [AllowAnonymous]

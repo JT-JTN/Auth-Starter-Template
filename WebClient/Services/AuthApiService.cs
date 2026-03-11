@@ -46,7 +46,7 @@ public sealed class AuthApiService : IAuthApiService
         }
     }
 
-    public async Task<ApiResult<TokenDto>> RegisterAsync(RegisterRequest request)
+    public async Task<ApiResult> RegisterAsync(RegisterRequest request)
     {
         try
         {
@@ -54,19 +54,14 @@ public sealed class AuthApiService : IAuthApiService
             if (!response.IsSuccessStatusCode)
             {
                 var err = await ReadErrorAsync(response);
-                return ApiResult<TokenDto>.Failure(err);
+                return ApiResult.Failure(err);
             }
 
-            var tokens = await response.Content.ReadFromJsonAsync<TokenDto>();
-            if (tokens is null) return ApiResult<TokenDto>.Failure("Invalid response from server.");
-
-            await _tokenStorage.SetTokensAsync(tokens.AccessToken, tokens.RefreshToken);
-            _authStateProvider.NotifyStateChanged();
-            return ApiResult<TokenDto>.Success(tokens);
+            return ApiResult.Success();
         }
         catch (Exception ex)
         {
-            return ApiResult<TokenDto>.Failure($"Registration failed: {ex.Message}");
+            return ApiResult.Failure($"Registration failed: {ex.Message}");
         }
     }
 

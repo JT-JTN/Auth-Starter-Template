@@ -92,7 +92,7 @@ public sealed class UserApiService : IUserApiService
         try
         {
             var body = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-            return body?.Error ?? response.ReasonPhrase ?? "An error occurred.";
+            return body?.Error ?? body?.Title ?? response.ReasonPhrase ?? "An error occurred.";
         }
         catch
         {
@@ -100,6 +100,6 @@ public sealed class UserApiService : IUserApiService
         }
     }
 
-    private record ErrorResponse(string? Error);
+    private record ErrorResponse(string? Error, string? Title);
     private record UrlResponse(string? Url);
 }

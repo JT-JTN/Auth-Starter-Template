@@ -20,7 +20,6 @@ else if (_profile is not null)
     <MudText Typo="Typo.h5" Class="mb-6" Style="font-weight:600">My Profile</MudText>
 
     <MudGrid Spacing="3">
-        {{-- Profile Image Card --}}
         <MudItem xs="12" sm="4" md="3">
             <MudPaper Elevation="2" Class="pa-6 text-center">
                 <div class="d-flex flex-column align-center gap-3">
@@ -94,11 +93,10 @@ else if (_profile is not null)
             </MudPaper>
         </MudItem>
 
-        {{-- Profile Edit Form --}}
         <MudItem xs="12" sm="8" md="9">
-            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelClass="pa-6">
-                {{-- Personal Info Tab --}}
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
                 <MudTabPanel Text="Personal Info" Icon="@Icons.Material.Filled.Person">
+                    <div class="pa-6 pt-8">
                     <EditForm Model="_editModel" OnValidSubmit="SaveProfileAsync">
                         <DataAnnotationsValidator />
 
@@ -187,10 +185,11 @@ else if (_profile is not null)
                             </MudButton>
                         </div>
                     </EditForm>
+                    </div>
                 </MudTabPanel>
 
-                {{-- Security Tab --}}
                 <MudTabPanel Text="Security" Icon="@Icons.Material.Filled.Security">
+                    <div class="pa-6 pt-8">
                     <MudText Typo="Typo.subtitle1" Style="font-weight:600" Class="mb-4">Change Password</MudText>
 
                     <EditForm Model="_changePasswordModel" OnValidSubmit="ChangePasswordAsync">
@@ -242,6 +241,7 @@ else if (_profile is not null)
                             </MudButton>
                         </div>
                     </EditForm>
+                    </div>
                 </MudTabPanel>
             </MudTabs>
         </MudItem>
@@ -260,7 +260,6 @@ else if (_profile is not null)
     private bool _showNewPassword;
     private string? _passwordError;
 
-    // MudDatePicker uses DateTime? not DateOnly
     private DateTime? _dateOfBirth
     {
         get => _editModel.DateOfBirth;
@@ -280,7 +279,7 @@ else if (_profile is not null)
 
         if (!result.IsSuccess)
         {
-            Snackbar.Add("Failed to load profile.", Severity.Error);
+            Snackbar.Add($"Failed to load profile: {result.Error}", Severity.Error);
             return;
         }
 
@@ -348,7 +347,6 @@ else if (_profile is not null)
             return;
         }
 
-        // Reload profile to get updated URL
         await LoadProfileAsync();
         Snackbar.Add("Profile photo updated!", Severity.Success);
     }
