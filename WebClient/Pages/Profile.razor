@@ -386,19 +386,51 @@ else if (_profile is not null)
                                             <div class="d-flex align-center gap-3">
                                                 <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
                                                 <div>
-                                                    <MudText Typo="Typo.body2" Style="font-weight:600">
-                                                        @(pk.Name ?? "Passkey")
-                                                    </MudText>
+                                                    @if (_renamingCredentialId == pk.CredentialId)
+                                                    {
+                                                        <div class="d-flex align-center gap-2">
+                                                            <MudTextField @bind-Value="_renameValue"
+                                                                          Variant="Variant.Outlined"
+                                                                          Margin="Margin.Dense"
+                                                                          Style="min-width:160px;"
+                                                                          MaxLength="64"
+                                                                          @onkeydown="@(async e => { if (e.Key == "Enter") await SaveRenameAsync(pk.CredentialId); else if (e.Key == "Escape") CancelRename(); })" />
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                                                           Color="Color.Success"
+                                                                           Size="Size.Small"
+                                                                           Disabled="_passkeyWorking"
+                                                                           OnClick="@(() => SaveRenameAsync(pk.CredentialId))" />
+                                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                                           Size="Size.Small"
+                                                                           OnClick="CancelRename" />
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudText Typo="Typo.body2" Style="font-weight:600">
+                                                            @(pk.Name ?? "Passkey")
+                                                        </MudText>
+                                                    }
                                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                         Added @pk.CreatedAt.LocalDateTime.ToString("MMM d, yyyy")
                                                     </MudText>
                                                 </div>
                                             </div>
-                                            <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
-                                                           Color="Color.Error"
-                                                           Size="Size.Small"
-                                                           Disabled="_passkeyWorking"
-                                                           OnClick="@(() => RemovePasskeyAsync(pk.CredentialId))" />
+                                            <div class="d-flex align-center">
+                                                @if (_renamingCredentialId != pk.CredentialId)
+                                                {
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                   Color="Color.Default"
+                                                                   Size="Size.Small"
+                                                                   Disabled="_passkeyWorking"
+                                                                   OnClick="@(() => StartRename(pk))" />
+                                                }
+                                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               Disabled="_passkeyWorking"
+                                                               OnClick="@(() => RemovePasskeyAsync(pk.CredentialId))" />
+                                            </div>
                                         </div>
                                     </MudListItem>
                                     <MudDivider />
@@ -436,6 +468,8 @@ else if (_profile is not null)
     private bool _loadingPasskeys;
     private bool _passkeyWorking;
     private string? _passkeyError;
+    private string? _renamingCredentialId;
+    private string _renameValue = string.Empty;
 
     private DateTime? _dateOfBirth
     {
@@ -601,6 +635,45 @@ else if (_profile is not null)
         {
             _passkeyWorking = false;
         }
+    }
+
+    private void StartRename(PasskeyInfoDto pk)
+    {
+        _renamingCredentialId = pk.CredentialId;
+        _renameValue = pk.Name ?? string.Empty;
+        _passkeyError = null;
+    }
+
+    private void CancelRename()
+    {
+        _renamingCredentialId = null;
+        _renameValue = string.Empty;
+    }
+
+    private async Task SaveRenameAsync(string credentialId)
+    {
+        var name = _renameValue.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            _passkeyError = "Name cannot be empty.";
+            return;
+        }
+
+        _passkeyWorking = true;
+        _passkeyError = null;
+
+        var result = await PasskeyApi.RenamePasskeyAsync(credentialId, name);
+        _passkeyWorking = false;
+
+        if (!result.IsSuccess)
+        {
+            _passkeyError = result.Error;
+            return;
+        }
+
+        CancelRename();
+        Snackbar.Add("Passkey renamed.", Severity.Success);
+        await LoadPasskeysAsync();
     }
 
     private async Task RemovePasskeyAsync(string credentialId)

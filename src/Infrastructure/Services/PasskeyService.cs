@@ -315,6 +315,24 @@ public sealed class PasskeyService : IPasskeyService
         return Result.Success(dtos);
     }
 
+    public async Task<Result> RenamePasskeyAsync(string userId, string credentialIdBase64, string name)
+    {
+        byte[] credentialId;
+        try { credentialId = Convert.FromBase64String(credentialIdBase64); }
+        catch { return Result.Failure("Invalid credential ID format"); }
+
+        var cred = await _db.PasskeyCredentials
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.CredentialId == credentialId);
+
+        if (cred is null)
+            return Result.Failure("Passkey not found");
+
+        cred.Name = name.Trim();
+        await _uow.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     public async Task<Result> RemovePasskeyAsync(string userId, string credentialIdBase64)
     {
         byte[] credentialId;

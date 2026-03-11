@@ -102,6 +102,22 @@ public sealed class PasskeyApiService : IPasskeyApiService
         }
     }
 
+    public async Task<ApiResult> RenamePasskeyAsync(string credentialId, string name)
+    {
+        try
+        {
+            var response = await _api.PutAsJsonAsync("auth/passkey/rename",
+                new { credentialId, name });
+            return response.IsSuccessStatusCode
+                ? ApiResult.Success()
+                : ApiResult.Failure(await ReadErrorAsync(response));
+        }
+        catch (Exception ex)
+        {
+            return ApiResult.Failure(ex.Message);
+        }
+    }
+
     public async Task<ApiResult> RemovePasskeyAsync(string credentialId)
     {
         try

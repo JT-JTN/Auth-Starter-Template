@@ -15,5 +15,6 @@ public interface IPasskeyService
 
     // Management (requires authenticated user)
     Task<Result<List<PasskeyInfoDto>>> GetPasskeysAsync(string userId);
+    Task<Result> RenamePasskeyAsync(string userId, string credentialIdBase64, string name);
     Task<Result> RemovePasskeyAsync(string userId, string credentialIdBase64);
 }

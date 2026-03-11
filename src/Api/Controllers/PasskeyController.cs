@@ -90,6 +90,19 @@ public class PasskeyController : ControllerBase
     }
 
     [Authorize]
+    [HttpPut("rename")]
+    public async Task<IActionResult> RenamePasskeyAsync([FromBody] PasskeyRenameDto dto)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = await _passkeyService.RenamePasskeyAsync(userId, dto.CredentialId, dto.Name);
+        if (result.IsFailure) return BadRequest(new { result.Error });
+
+        return NoContent();
+    }
+
+    [Authorize]
     [HttpDelete]
     public async Task<IActionResult> RemovePasskeyAsync([FromQuery] string credentialId)
     {
