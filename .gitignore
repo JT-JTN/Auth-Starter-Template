@@ -25,7 +25,7 @@
 secrets.json
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
-src/Api/logs/
+src/Api/logs/*.log
 
 # User-specific files
 *.rsuser
