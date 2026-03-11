@@ -18,6 +18,8 @@
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.3" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.415.8" />
+    <PackageReference Include="Fido2" Version="4.0.0" />
+    <PackageReference Include="Fido2.AspNet" Version="4.0.0" />
     <PackageReference Include="MailKit" Version="4.15.1" />
     <PackageReference Include="MimeKit" Version="4.15.1" />
   </ItemGroup>

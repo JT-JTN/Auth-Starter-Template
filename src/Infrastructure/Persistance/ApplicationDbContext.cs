@@ -28,6 +28,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<User>, IUnitOfWork
     public DbSet<AppCountry> AppCountries => Set<AppCountry>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserProfileImage> UserProfileImages => Set<UserProfileImage>();
+    public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
 
     // IUnitOfWork
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)

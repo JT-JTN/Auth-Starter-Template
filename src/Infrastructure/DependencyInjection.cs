@@ -1,10 +1,10 @@
 using Application.Services;
 using Domain.Users;
+using Fido2NetLib;
 using Infrastructure.Options;
 using Infrastructure.Persistance;
 using Infrastructure.Persistance.Repositories;
 using Infrastructure.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -70,27 +70,15 @@ public static class DependencyInjection
                 };
             });
 
-        // The passkey challenge is stored in Identity's TwoFactor cookie.
-        // Cross-origin Blazor WASM requests require SameSite=None;Secure for
-        // the browser to send this cookie back with the register/complete and login/complete POSTs.
-        services.ConfigureApplicationCookie(o =>
+        // Fido2NetLib — handles WebAuthn ceremonies with server-side challenge storage (IMemoryCache).
+        // This avoids the cross-origin cookie problem of Identity's built-in passkey methods.
+        services.AddMemoryCache();
+        services.AddFido2(options =>
         {
-            o.Cookie.SameSite = SameSiteMode.None;
-            o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        });
-        services.Configure<CookieAuthenticationOptions>(
-            IdentityConstants.TwoFactorUserIdScheme, o =>
-            {
-                o.Cookie.SameSite = SameSiteMode.None;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            });
-
-        // Passkey Options (ServerDomain defaults to Host header if not set)
-        services.Configure<IdentityPasskeyOptions>(options =>
-        {
-            var serverDomain = configuration["Passkeys:ServerDomain"];
-            if (!string.IsNullOrEmpty(serverDomain))
-                options.ServerDomain = serverDomain;
+            options.ServerDomain = configuration["Fido2:ServerDomain"] ?? "localhost";
+            options.ServerName = configuration["App:Name"] ?? "App";
+            options.Origins = configuration.GetSection("Fido2:Origins").Get<HashSet<string>>() ?? [];
+            options.TimestampDriftTolerance = 300000;
         });
 
         // Email + App + S3 Options

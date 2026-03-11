@@ -1,34 +1,51 @@
 using Application.DTOs.Auth;
 using Application.Services;
 using Domain.Users;
+using Fido2NetLib;
+using Fido2NetLib.Objects;
+using Infrastructure.Persistance;
 using Infrastructure.Persistance.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SharedKernel;
+using System.Text;
+using System.Text.Json;
 
 namespace Infrastructure.Services;
 
 public sealed class PasskeyService : IPasskeyService
 {
-    private readonly SignInManager<User> _signInManager;
+    private readonly IFido2 _fido2;
+    private readonly IMemoryCache _cache;
     private readonly UserManager<User> _userManager;
+    private readonly ApplicationDbContext _db;
     private readonly ITokenService _tokenService;
     private readonly ITokenRepository _tokenRepository;
     private readonly IUnitOfWork _uow;
     private readonly IDateTimeProvider _dateTime;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
+    private const string RegPrefix = "passkey:reg:";
+    private const string LoginPrefix = "passkey:login:";
+    private static readonly TimeSpan ChallengeExpiry = TimeSpan.FromMinutes(5);
+
     public PasskeyService(
-        SignInManager<User> signInManager,
+        IFido2 fido2,
+        IMemoryCache cache,
         UserManager<User> userManager,
+        ApplicationDbContext db,
         ITokenService tokenService,
         ITokenRepository tokenRepository,
         IUnitOfWork uow,
         IDateTimeProvider dateTime,
         IHttpContextAccessor httpContextAccessor)
     {
-        _signInManager = signInManager;
+        _fido2 = fido2;
+        _cache = cache;
         _userManager = userManager;
+        _db = db;
         _tokenService = tokenService;
         _tokenRepository = tokenRepository;
         _uow = uow;
@@ -42,22 +59,61 @@ public sealed class PasskeyService : IPasskeyService
     private string? GetUserAgent() =>
         _httpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString();
 
+    private static string ToBase64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+    /// <summary>
+    /// Decodes clientDataJSON and extracts the challenge field (base64url string).
+    /// Used as the server-side cache key to link begin→complete without any cookies.
+    /// </summary>
+    private static string ExtractChallenge(byte[] clientDataJsonBytes)
+    {
+        var json = Encoding.UTF8.GetString(clientDataJsonBytes);
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("challenge").GetString()
+            ?? throw new InvalidOperationException("No challenge field in clientDataJSON");
+    }
+
+    // ── Registration ──────────────────────────────────────────────────────────
+
     public async Task<Result<string>> BeginRegistrationAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
             return Result.Failure<string>("User not found");
 
-        var entity = new PasskeyUserEntity
+        var fido2User = new Fido2User
         {
-            Id = user.Id,
+            Id = Encoding.UTF8.GetBytes(user.Id),
             Name = user.UserName!,
             DisplayName = user.Email ?? user.UserName!
         };
 
-        // Generates creation options JSON and stores the challenge in the TwoFactorUserIdScheme cookie
-        var optionsJson = await _signInManager.MakePasskeyCreationOptionsAsync(entity);
-        return Result.Success(optionsJson);
+        // Exclude credentials the user already has (prevents duplicates on same authenticator)
+        var existingKeys = await _db.PasskeyCredentials
+            .Where(p => p.UserId == user.Id)
+            .Select(p => new PublicKeyCredentialDescriptor(p.CredentialId))
+            .ToListAsync();
+
+        var authSelection = new AuthenticatorSelection
+        {
+            UserVerification = UserVerificationRequirement.Preferred,
+            ResidentKey = ResidentKeyRequirement.Preferred
+        };
+
+        var options = _fido2.RequestNewCredential(new RequestNewCredentialParams
+        {
+            User = fido2User,
+            ExcludeCredentials = existingKeys,
+            AuthenticatorSelection = authSelection,
+            AttestationPreference = AttestationConveyancePreference.None
+        });
+
+        // Store by challenge so we can look it up in CompleteRegistrationAsync
+        var challengeKey = ToBase64Url(options.Challenge);
+        _cache.Set(RegPrefix + challengeKey, options.ToJson(), ChallengeExpiry);
+
+        return Result.Success(options.ToJson());
     }
 
     public async Task<Result> CompleteRegistrationAsync(string userId, string credentialJson)
@@ -66,49 +122,167 @@ public sealed class PasskeyService : IPasskeyService
         if (user is null)
             return Result.Failure("User not found");
 
-        // Reads challenge from cookie, verifies attestation
-        var attestation = await _signInManager.PerformPasskeyAttestationAsync(credentialJson);
-        if (!attestation.Succeeded)
-            return Result.Failure(attestation.Failure?.Message ?? "Passkey registration failed");
-
-        var result = await _userManager.AddOrUpdatePasskeyAsync(user, attestation.Passkey);
-        if (!result.Succeeded)
+        AuthenticatorAttestationRawResponse attestationResponse;
+        try
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            return Result.Failure(errors);
+            attestationResponse = JsonSerializer.Deserialize<AuthenticatorAttestationRawResponse>(credentialJson)
+                ?? throw new JsonException("Null result");
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Invalid credential format: {ex.Message}");
         }
 
+        // Extract challenge from clientDataJSON to retrieve stored options
+        string challengeKey;
+        try { challengeKey = ExtractChallenge(attestationResponse.Response.ClientDataJson); }
+        catch (Exception ex) { return Result.Failure($"Could not read challenge: {ex.Message}"); }
+
+        var optionsJson = _cache.Get<string>(RegPrefix + challengeKey);
+        if (optionsJson is null)
+            return Result.Failure("Registration session expired or not found. Please try again.");
+
+        _cache.Remove(RegPrefix + challengeKey);
+
+        var options = CredentialCreateOptions.FromJson(optionsJson);
+
+        RegisteredPublicKeyCredential credential;
+        try
+        {
+            credential = await _fido2.MakeNewCredentialAsync(
+                new MakeNewCredentialParams
+                {
+                    AttestationResponse = attestationResponse,
+                    OriginalOptions = options,
+                    IsCredentialIdUniqueToUserCallback = async (args, ct) =>
+                        !await _db.PasskeyCredentials
+                            .AnyAsync(p => p.CredentialId == args.CredentialId, ct)
+                });
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+
+        var transportsJson = credential.Transports is { Length: > 0 }
+            ? JsonSerializer.Serialize(credential.Transports.Select(t => t.ToEnumMemberValue()))
+            : null;
+
+        _db.PasskeyCredentials.Add(new PasskeyCredential
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CredentialId = credential.Id,
+            PublicKey = credential.PublicKey,
+            SignCount = credential.SignCount,
+            AaGuid = credential.AaGuid,
+            Transports = transportsJson,
+            Name = $"Passkey {DateTimeOffset.UtcNow:yyyy-MM-dd}",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _uow.SaveChangesAsync();
         return Result.Success();
     }
 
+    // ── Login ─────────────────────────────────────────────────────────────────
+
     public async Task<Result<string>> BeginLoginAsync(string? userName)
     {
-        User? user = null;
+        List<PublicKeyCredentialDescriptor> allowedCredentials = [];
+
         if (!string.IsNullOrWhiteSpace(userName))
         {
-            user = await _userManager.FindByNameAsync(userName)
-                   ?? await _userManager.FindByEmailAsync(userName);
+            var user = await _userManager.FindByNameAsync(userName)
+                       ?? await _userManager.FindByEmailAsync(userName);
+
+            if (user is not null)
+            {
+                allowedCredentials = await _db.PasskeyCredentials
+                    .Where(p => p.UserId == user.Id)
+                    .Select(p => new PublicKeyCredentialDescriptor(p.CredentialId))
+                    .ToListAsync();
+            }
         }
 
-        // Passing null enables the discoverable credential (usernameless) flow
-        var optionsJson = await _signInManager.MakePasskeyRequestOptionsAsync(user);
-        return Result.Success(optionsJson);
+        // Empty list → discoverable credential (usernameless) flow
+        var options = _fido2.GetAssertionOptions(new GetAssertionOptionsParams
+        {
+            AllowedCredentials = allowedCredentials,
+            UserVerification = UserVerificationRequirement.Preferred
+        });
+
+        var challengeKey = ToBase64Url(options.Challenge);
+        _cache.Set(LoginPrefix + challengeKey, options.ToJson(), ChallengeExpiry);
+
+        return Result.Success(options.ToJson());
     }
 
     public async Task<Result<TokenDto>> CompleteLoginAsync(string credentialJson)
     {
-        // Reads challenge from cookie, verifies assertion, returns the matched user and updated passkey
-        var assertion = await _signInManager.PerformPasskeyAssertionAsync(credentialJson);
-        if (!assertion.Succeeded)
-            return Result.Failure<TokenDto>(assertion.Failure?.Message ?? "Passkey authentication failed");
+        AuthenticatorAssertionRawResponse assertionResponse;
+        try
+        {
+            assertionResponse = JsonSerializer.Deserialize<AuthenticatorAssertionRawResponse>(credentialJson)
+                ?? throw new JsonException("Null result");
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<TokenDto>($"Invalid credential format: {ex.Message}");
+        }
 
-        var user = assertion.User;
+        string challengeKey;
+        try { challengeKey = ExtractChallenge(assertionResponse.Response.ClientDataJson); }
+        catch (Exception ex) { return Result.Failure<TokenDto>($"Could not read challenge: {ex.Message}"); }
+
+        var optionsJson = _cache.Get<string>(LoginPrefix + challengeKey);
+        if (optionsJson is null)
+            return Result.Failure<TokenDto>("Login session expired. Please try again.");
+
+        _cache.Remove(LoginPrefix + challengeKey);
+
+        var options = AssertionOptions.FromJson(optionsJson);
+
+        // Find the stored credential — RawId is the byte[] version of the base64url Id
+        var credentialIdBytes = assertionResponse.RawId;
+        var storedCred = await _db.PasskeyCredentials
+            .FirstOrDefaultAsync(p => p.CredentialId == credentialIdBytes);
+
+        if (storedCred is null)
+            return Result.Failure<TokenDto>("Passkey not found. It may have been removed.");
+
+        VerifyAssertionResult verifyResult;
+        try
+        {
+            verifyResult = await _fido2.MakeAssertionAsync(new MakeAssertionParams
+            {
+                AssertionResponse = assertionResponse,
+                OriginalOptions = options,
+                StoredPublicKey = storedCred.PublicKey,
+                StoredSignatureCounter = (uint)storedCred.SignCount,
+                IsUserHandleOwnerOfCredentialIdCallback = async (args, ct) =>
+                {
+                    if (args.UserHandle is null) return true;
+                    var claimedUserId = Encoding.UTF8.GetString(args.UserHandle);
+                    return await _db.PasskeyCredentials
+                        .AnyAsync(p => p.CredentialId == args.CredentialId && p.UserId == claimedUserId, ct);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<TokenDto>(ex.Message);
+        }
+
+        // Update signature counter (replay-attack protection)
+        storedCred.SignCount = verifyResult.SignCount;
+
+        var user = await _userManager.FindByIdAsync(storedCred.UserId);
+        if (user is null)
+            return Result.Failure<TokenDto>("User not found");
 
         if (!user.EmailConfirmed)
             return Result.Failure<TokenDto>("Email address has not been confirmed");
-
-        // Persist the updated sign count (replay attack prevention)
-        await _userManager.AddOrUpdatePasskeyAsync(user, assertion.Passkey);
 
         user.LastLoginUtc = _dateTime.UtcNow;
         await _userManager.UpdateAsync(user);
@@ -122,18 +296,20 @@ public sealed class PasskeyService : IPasskeyService
         return Result.Success(new TokenDto(accessToken, refreshToken.Token));
     }
 
+    // ── Management ────────────────────────────────────────────────────────────
+
     public async Task<Result<List<PasskeyInfoDto>>> GetPasskeysAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-            return Result.Failure<List<PasskeyInfoDto>>("User not found");
+        var creds = await _db.PasskeyCredentials
+            .Where(p => p.UserId == userId)
+            .OrderBy(p => p.CreatedAt)
+            .ToListAsync();
 
-        var passkeys = await _userManager.GetPasskeysAsync(user);
-        var dtos = passkeys
+        var dtos = creds
             .Select(p => new PasskeyInfoDto(
                 Convert.ToBase64String(p.CredentialId),
-                p.Name,
-                p.CreatedAt))
+                p.Name ?? "Passkey",
+                p.CreatedAt.UtcDateTime))
             .ToList();
 
         return Result.Success(dtos);
@@ -141,20 +317,18 @@ public sealed class PasskeyService : IPasskeyService
 
     public async Task<Result> RemovePasskeyAsync(string userId, string credentialIdBase64)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-            return Result.Failure("User not found");
-
         byte[] credentialId;
         try { credentialId = Convert.FromBase64String(credentialIdBase64); }
         catch { return Result.Failure("Invalid credential ID format"); }
 
-        var result = await _userManager.RemovePasskeyAsync(user, credentialId);
-        if (!result.Succeeded)
-        {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            return Result.Failure(errors);
-        }
+        var cred = await _db.PasskeyCredentials
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.CredentialId == credentialId);
+
+        if (cred is null)
+            return Result.Failure("Passkey not found");
+
+        _db.PasskeyCredentials.Remove(cred);
+        await _uow.SaveChangesAsync();
 
         return Result.Success();
     }
