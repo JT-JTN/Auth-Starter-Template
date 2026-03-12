@@ -38,7 +38,7 @@ public sealed class TokenService : ITokenService
         };
 
         foreach (var role in roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("role", role));
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
@@ -54,6 +54,7 @@ public sealed class TokenService : ITokenService
     {
         return new RefreshToken
         {
+            Id = Guid.NewGuid(),
             Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
             ExpiresUtc = _dateTime.UtcNow.AddDays(_config.GetValue<int>("Jwt:ExpirationDays")),
             CreatedAtUtc = _dateTime.UtcNow,

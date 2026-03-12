@@ -13,6 +13,7 @@ namespace Infrastructure.Services;
 public sealed class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ITokenService _tokenService;
     private readonly ITokenRepository _tokenRepository;
     private readonly IAppEmailSender _emailSender;
@@ -22,6 +23,7 @@ public sealed class AuthService : IAuthService
 
     public AuthService(
         UserManager<User> userManager,
+        RoleManager<IdentityRole> roleManager,
         ITokenService tokenService,
         ITokenRepository tokenRepository,
         IAppEmailSender emailSender,
@@ -30,6 +32,7 @@ public sealed class AuthService : IAuthService
         IHttpContextAccessor httpContextAccessor)
     {
         _userManager = userManager;
+        _roleManager = roleManager;
         _tokenService = tokenService;
         _tokenRepository = tokenRepository;
         _emailSender = emailSender;
@@ -64,8 +67,16 @@ public sealed class AuthService : IAuthService
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return Result.Failure(errors);
         }
-
-        await _userManager.AddToRoleAsync(user, "User");
+        
+        var roleExists = await _roleManager.RoleExistsAsync("User");
+        if (!roleExists)
+            await _roleManager.CreateAsync(new IdentityRole("User"));
+        var roleResult = await _userManager.AddToRoleAsync(user, "User");
+        if (!roleResult.Succeeded)
+        {
+            var errors = string.Join("; ", roleResult.Errors.Select(e => e.Description));
+            return Result.Failure(errors);
+        }
 
         // Send confirmation email. Email is best-effort — failure does not fail registration.
         var confirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);

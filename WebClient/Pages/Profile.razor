@@ -59,10 +59,25 @@ else if (_profile is not null)
 
                     <AuthorizeView>
                         <Authorized>
-                            @{ var roleColor = context.User.IsInRole("Admin") ? Color.Error : Color.Primary; }
-                            <MudChip T="string" Color="@roleColor" Size="Size.Small" Icon="@Icons.Material.Filled.Badge">
-                                @(context.User.IsInRole("Admin") ? "Admin" : "User")
-                            </MudChip>
+                            @{
+                                var roles = context.User.Claims
+                                    .Where(c => c.Type == "role")
+                                    .Select(c => c.Value)
+                                    .ToList();
+                            }
+                            @foreach (var role in roles)
+                            {
+                                var chipColor = role == "Admin" ? Color.Error : Color.Primary;
+                                <MudChip T="string" Color="@chipColor" Size="Size.Small" Icon="@Icons.Material.Filled.Badge">
+                                    @role
+                                </MudChip>
+                            }
+                            @if (roles.Count == 0)
+                            {
+                                <MudChip T="string" Color="Color.Default" Size="Size.Small" Icon="@Icons.Material.Filled.Badge">
+                                    No role
+                                </MudChip>
+                            }
                         </Authorized>
                     </AuthorizeView>
 
@@ -103,6 +118,38 @@ else if (_profile is not null)
                 }
             </MudPaper>
         </MudItem>
+
+        @* ── DEBUG: JWT Claims — remove before prod ──────────────────────────────── *@
+        <MudItem xs="12">
+            <AuthorizeView>
+                <Authorized>
+                    <MudExpansionPanels Elevation="1">
+                        <MudExpansionPanel Text="🔍 JWT Claims (debug)" MaxHeight="400">
+                            <MudTable Items="@context.User.Claims.OrderBy(c => c.Type)"
+                                      Dense="true" Hover="true" Striped="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Type</MudTh>
+                                    <MudTh>Value</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="claim">
+                                    <MudTd>
+                                        <MudText Typo="Typo.caption" Style="font-family:monospace; word-break:break-all;">
+                                            @claim.Type
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudText Typo="Typo.caption" Style="font-family:monospace; word-break:break-all;">
+                                            @claim.Value
+                                        </MudText>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </Authorized>
+            </AuthorizeView>
+        </MudItem>
+        @* ── END DEBUG ────────────────────────────────────────────────────────── *@
 
         <MudItem xs="12" sm="8" md="9">
             <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">

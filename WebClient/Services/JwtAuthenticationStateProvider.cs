@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -6,30 +7,36 @@ namespace WebClient.Services;
 
 /// <summary>
 /// Custom AuthenticationStateProvider that parses JWT tokens stored in localStorage.
-/// Replaces the OIDC-based provider. No server round-trips for auth state checks.
+/// On startup, if the access token is expired but a refresh token exists, silently
+/// refreshes before determining auth state — so users stay logged in across sessions.
 /// </summary>
 public sealed class JwtAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly TokenStorageService _tokenStorage;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private static readonly AuthenticationState _anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
 
-    public JwtAuthenticationStateProvider(TokenStorageService tokenStorage)
+    public JwtAuthenticationStateProvider(
+        TokenStorageService tokenStorage,
+        IHttpClientFactory httpClientFactory)
     {
         _tokenStorage = tokenStorage;
+        _httpClientFactory = httpClientFactory;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         var accessToken = await _tokenStorage.GetAccessTokenAsync();
 
-        if (string.IsNullOrWhiteSpace(accessToken))
-            return _anonymous;
-
-        // Check expiry without a server call
-        if (IsTokenExpired(accessToken))
-            return _anonymous;
+        // Access token missing or expired — try silent refresh before giving up
+        if (string.IsNullOrWhiteSpace(accessToken) || IsTokenExpired(accessToken))
+        {
+            accessToken = await TrySilentRefreshAsync();
+            if (accessToken is null)
+                return _anonymous;
+        }
 
         var claims = ParseClaimsFromJwt(accessToken);
         // "role" is the short claim name written by JwtSecurityTokenHandler; specify it
@@ -43,6 +50,47 @@ public sealed class JwtAuthenticationStateProvider : AuthenticationStateProvider
     /// </summary>
     public void NotifyStateChanged() =>
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+
+    // ── Silent refresh ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Attempts to exchange the stored refresh token for a new token pair.
+    /// Uses the public (unauthenticated) HTTP client to avoid circular handler dependency.
+    /// Returns the new access token on success, null on failure.
+    /// </summary>
+    private async Task<string?> TrySilentRefreshAsync()
+    {
+        var refreshToken = await _tokenStorage.GetRefreshTokenAsync();
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return null;
+
+        try
+        {
+            using var client = _httpClientFactory.CreateClient("public");
+            var response = await client.PostAsJsonAsync("auth/refresh", refreshToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await _tokenStorage.ClearAsync();
+                return null;
+            }
+
+            var tokens = await response.Content.ReadFromJsonAsync<TokenDto>();
+            if (tokens is null)
+            {
+                await _tokenStorage.ClearAsync();
+                return null;
+            }
+
+            await _tokenStorage.SetTokensAsync(tokens.AccessToken, tokens.RefreshToken);
+            return tokens.AccessToken;
+        }
+        catch
+        {
+            await _tokenStorage.ClearAsync();
+            return null;
+        }
+    }
 
     // ── JWT Parsing ───────────────────────────────────────────────────────────
 
