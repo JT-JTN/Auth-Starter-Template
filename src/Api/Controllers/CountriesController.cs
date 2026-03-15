@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace Api.Controllers;
 
@@ -18,6 +19,7 @@ public class CountriesController : ControllerBase
         _appCountryService = appCountryService;
     }
 
+    [OutputCache(PolicyName = "countries")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [HttpGet]
     public async Task<IActionResult> GetAllCountriesAsync()

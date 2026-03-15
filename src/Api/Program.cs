@@ -29,11 +29,12 @@ builder.Host.UseSerilog((ctx, services, config) => config
     .ReadFrom.Configuration(ctx.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .Enrich.WithProperty("CorrelationId", "")   // default; overridden per-request by CorrelationIdMiddleware
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/api-.log",
         rollingInterval: RollingInterval.Day,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"));
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{CorrelationId}] {SourceContext}: {Message:lj}{NewLine}{Exception}"));
 
 // Fail fast: validate required secrets before anything starts
 var jwtSecret = builder.Configuration["Jwt:SecretKey"];
@@ -117,6 +118,17 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
+builder.Services.AddProblemDetails();
+
+builder.Services.AddOutputCache(options =>
+{
+    // Countries list is public, static data — cache for 10 minutes with no vary-by.
+    options.AddPolicy("countries", builder =>
+        builder.Expire(TimeSpan.FromMinutes(10))
+               .SetVaryByQuery([])
+               .Tag("countries"));
+});
+
 builder.Services.AddLocalization();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IRealtimeNotifier, HubRealtimeNotifier>();
@@ -161,9 +173,17 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 app.UseSerilogRequestLogging(opts =>
 {
     opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    // Enrich Serilog request log with the correlation ID from the current request context.
+    opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        if (httpContext.Items[CorrelationIdMiddleware.ItemsKey] is string cid)
+            diagnosticContext.Set("CorrelationId", cid);
+    };
 });
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -185,6 +205,8 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseOutputCache();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
