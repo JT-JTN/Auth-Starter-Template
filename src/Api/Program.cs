@@ -174,6 +174,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<IpFilteringMiddleware>();
 
 app.UseSerilogRequestLogging(opts =>
 {
@@ -207,6 +208,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseOutputCache();
+app.UseMiddleware<IdempotencyMiddleware>();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");

@@ -155,13 +155,15 @@ public static class DependencyInjection
             options.TimestampDriftTolerance = 300000;
         });
 
-        // Email + App + S3 + Policy + Redis Options
+        // Email + App + S3 + Policy + Redis + Security Options
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
         services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
         services.Configure<S3Settings>(configuration.GetSection(S3Settings.SectionName));
         services.Configure<PasswordPolicySettings>(configuration.GetSection(PasswordPolicySettings.SectionName));
         services.Configure<RequestLoggingSettings>(configuration.GetSection(RequestLoggingSettings.SectionName));
         services.Configure<RedisSettings>(configuration.GetSection(RedisSettings.SectionName));
+        services.Configure<IpFilteringSettings>(configuration.GetSection(IpFilteringSettings.SectionName));
+        services.Configure<IdempotencySettings>(configuration.GetSection(IdempotencySettings.SectionName));
 
         // Core infrastructure
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
