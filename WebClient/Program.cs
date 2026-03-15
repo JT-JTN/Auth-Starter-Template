@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using System.Globalization;
 using WebClient;
 using WebClient.Services;
 
@@ -44,6 +45,8 @@ builder.Services.AddScoped<IAdminApiService, AdminApiService>();
 // ── App Services ──────────────────────────────────────────────────────────────
 
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<NotificationHubService>();
+builder.Services.AddLocalization();
 
 // ── MudBlazor ─────────────────────────────────────────────────────────────────
 
@@ -58,4 +61,29 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.ShowTransitionDuration = 500;
 });
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// ── Restore persisted culture (must run before the app renders) ───────────────
+var js = host.Services.GetRequiredService<Microsoft.JSInterop.IJSRuntime>();
+var cultureName = await js.InvokeAsync<string?>("localStorage.getItem", new object?[] { "app-culture" });
+if (!string.IsNullOrEmpty(cultureName))
+{
+    try
+    {
+        var culture = new CultureInfo(cultureName);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+    }
+    catch (CultureNotFoundException) { /* ignore unknown culture names */ }
+}
+
+// ── Kick off SignalR for already-authenticated sessions (page refresh) ────────
+var authProvider = host.Services.GetRequiredService<JwtAuthenticationStateProvider>();
+var initialState = await authProvider.GetAuthenticationStateAsync();
+if (initialState.User.Identity?.IsAuthenticated == true)
+{
+    var hubService = host.Services.GetRequiredService<NotificationHubService>();
+    await hubService.StartAsync();
+}
+
+await host.RunAsync();

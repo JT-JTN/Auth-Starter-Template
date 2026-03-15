@@ -21,6 +21,10 @@ namespace Integration.Tests;
 /// </summary>
 public class AuthWebApplicationFactory : WebApplicationFactory<Program>
 {
+    // Unique per factory instance — prevents InMemory database sharing between
+    // different test classes that each get their own IClassFixture instance.
+    private readonly string _dbName = Guid.NewGuid().ToString("N");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development"); // gives detailed errors in responses
@@ -65,7 +69,7 @@ public class AuthWebApplicationFactory : WebApplicationFactory<Program>
             // Re-add with InMemory — unique name per factory instance avoids state leaking
             // across tests that use different factory instances.
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseInMemoryDatabase("IntegrationTestDb"));
+                options.UseInMemoryDatabase(_dbName));
 
             // Replace the real email sender with a no-op so tests never hit SMTP
             services.RemoveAll<IAppEmailSender>();
@@ -129,6 +133,47 @@ public class AuthWebApplicationFactory : WebApplicationFactory<Program>
         if (!await roleManager.RoleExistsAsync("User"))
             await roleManager.CreateAsync(new IdentityRole("User"));
         await userManager.AddToRoleAsync(user, "User");
+
+        return (user, password);
+    }
+
+    /// <summary>
+    /// Creates and seeds a confirmed Admin user directly in the InMemory database.
+    /// </summary>
+    public async Task<(User User, string PlainPassword)> SeedAdminUserAsync(
+        string username = "adminuser",
+        string email = "admin@example.com",
+        string password = "AdminPass1!")
+    {
+        using var scope = Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        var existing = await userManager.FindByNameAsync(username);
+        if (existing is not null)
+            await userManager.DeleteAsync(existing);
+
+        var user = new User
+        {
+            UserName = username,
+            Email = email,
+            FirstName = "Admin",
+            LastName = "User",
+            EmailConfirmed = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(user, password);
+        if (!result.Succeeded)
+            throw new InvalidOperationException(
+                $"Failed to seed admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+
+        foreach (var role in new[] { "User", "Admin" })
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+                await roleManager.CreateAsync(new IdentityRole(role));
+            await userManager.AddToRoleAsync(user, role);
+        }
 
         return (user, password);
     }

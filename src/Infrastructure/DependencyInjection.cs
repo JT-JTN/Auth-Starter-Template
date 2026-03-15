@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Quartz;
 using Quartz.Impl.Matchers;
@@ -30,16 +31,20 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         // Identity Configuration
+        var passwordPolicy = configuration
+            .GetSection(PasswordPolicySettings.SectionName)
+            .Get<PasswordPolicySettings>() ?? new PasswordPolicySettings();
+
         services.AddIdentity<User, IdentityRole>(options =>
         {
             options.SignIn.RequireConfirmedEmail = true;
 
-            options.Password.RequiredLength = 8;
-            options.Password.RequireNonAlphanumeric = true;
-            options.Password.RequireDigit = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequiredUniqueChars = 1;
+            options.Password.RequiredLength = passwordPolicy.RequiredLength;
+            options.Password.RequireNonAlphanumeric = passwordPolicy.RequireNonAlphanumeric;
+            options.Password.RequireDigit = passwordPolicy.RequireDigit;
+            options.Password.RequireUppercase = passwordPolicy.RequireUppercase;
+            options.Password.RequireLowercase = passwordPolicy.RequireLowercase;
+            options.Password.RequiredUniqueChars = passwordPolicy.RequiredUniqueChars;
 
             options.User.RequireUniqueEmail = true;
             options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
@@ -85,6 +90,18 @@ public static class DependencyInjection
                 // immediately rather than waiting for the access token to expire.
                 options.Events = new JwtBearerEvents
                 {
+                    // SignalR WebSocket connections cannot send custom headers from browsers,
+                    // so the JWT is passed as ?access_token= in the query string instead.
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = async context =>
                     {
                         var sid = context.Principal?.FindFirstValue("sid");
@@ -119,10 +136,12 @@ public static class DependencyInjection
             options.TimestampDriftTolerance = 300000;
         });
 
-        // Email + App + S3 Options
+        // Email + App + S3 + Policy Options
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
         services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
         services.Configure<S3Settings>(configuration.GetSection(S3Settings.SectionName));
+        services.Configure<PasswordPolicySettings>(configuration.GetSection(PasswordPolicySettings.SectionName));
+        services.Configure<RequestLoggingSettings>(configuration.GetSection(RequestLoggingSettings.SectionName));
 
         // Core infrastructure
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
@@ -140,6 +159,9 @@ public static class DependencyInjection
         services.AddScoped<ITokenRepository, TokenRepository>();
 
         // Service Registration
+        // TryAdd — defers to HubRealtimeNotifier when the Api project has already registered it;
+        // falls back to no-op in test hosts and background workers.
+        services.TryAddScoped<IRealtimeNotifier, NoOpRealtimeNotifier>();
         services.AddScoped<IAppCountryService, AppCountryService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();

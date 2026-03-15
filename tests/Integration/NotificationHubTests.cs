@@ -126,13 +126,13 @@ public class NotificationHubIntegrationTests
             email: $"hub_admin_{Guid.NewGuid():N}@example.com");
 
         // ── 2. Get user's access token ────────────────────────────────────────
-        var userLogin = await _client.PostAsJsonAsync("/api/auth/login",
+        var userLogin = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, userPwd));
         userLogin.EnsureSuccessStatusCode();
         var userTokens = await userLogin.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
 
         // ── 3. Get admin's access token ───────────────────────────────────────
-        var adminLogin = await _client.PostAsJsonAsync("/api/auth/login",
+        var adminLogin = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(admin.UserName!, adminPwd));
         adminLogin.EnsureSuccessStatusCode();
         var adminTokens = await adminLogin.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
@@ -162,7 +162,7 @@ public class NotificationHubIntegrationTests
         adminClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", adminTokens!.AccessToken);
 
-        var revokeResp = await adminClient.DeleteAsync($"/api/admin/users/{user.Id}/sessions");
+        var revokeResp = await adminClient.DeleteAsync($"/api/v1/admin/users/{user.Id}/sessions");
         revokeResp.EnsureSuccessStatusCode();
 
         // ── 6. Verify the hub delivered the notification ──────────────────────
@@ -186,11 +186,11 @@ public class NotificationHubIntegrationTests
             username: $"hub_ra_{Guid.NewGuid():N}",
             email: $"hub_ra_{Guid.NewGuid():N}@example.com");
 
-        var userLogin = await _client.PostAsJsonAsync("/api/auth/login",
+        var userLogin = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, userPwd));
         var userTokens = await userLogin.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
 
-        var adminLogin = await _client.PostAsJsonAsync("/api/auth/login",
+        var adminLogin = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(admin.UserName!, adminPwd));
         var adminTokens = await adminLogin.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
 
@@ -216,7 +216,7 @@ public class NotificationHubIntegrationTests
             new AuthenticationHeaderValue("Bearer", adminTokens!.AccessToken);
 
         var assignResp = await adminClient.PostAsJsonAsync(
-            $"/api/admin/users/{user.Id}/roles", new AdminAssignRoleDto("Admin"));
+            $"/api/v1/admin/users/{user.Id}/roles", new AdminAssignRoleDto("Admin"));
         assignResp.EnsureSuccessStatusCode();
 
         var (title, _, severity) = await received.Task.WaitAsync(TimeSpan.FromSeconds(5));

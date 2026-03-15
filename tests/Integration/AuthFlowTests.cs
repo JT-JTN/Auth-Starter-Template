@@ -38,7 +38,7 @@ public class AuthFlowTests
             "IntTest1!",
             "IntTest1!");
 
-        var response = await _client.PostAsJsonAsync("/api/auth/register", dto);
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
@@ -56,7 +56,7 @@ public class AuthFlowTests
             "Password1!",
             "Different1!");
 
-        var response = await _client.PostAsJsonAsync("/api/auth/register", dto);
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -77,7 +77,7 @@ public class AuthFlowTests
             "Password1!",
             "Password1!");
 
-        var response = await _client.PostAsJsonAsync("/api/auth/register", dto);
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -92,10 +92,10 @@ public class AuthFlowTests
         var username = $"unconfirmed_{Guid.NewGuid():N}";
         var email = $"{username}@example.com";
         var dto = new RegisterDto("Test", "User", username, email, "Password1!", "Password1!");
-        await _client.PostAsJsonAsync("/api/auth/register", dto);
+        await _client.PostAsJsonAsync("/api/v1/auth/register", dto);
 
         // Try to log in before confirming email
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(username, "Password1!"));
 
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -110,7 +110,7 @@ public class AuthFlowTests
             username: $"wrongpwd_{Guid.NewGuid():N}",
             email: $"wrongpwd_{Guid.NewGuid():N}@example.com");
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, "WrongPassword!"));
 
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -123,7 +123,7 @@ public class AuthFlowTests
             username: $"confirmed_{Guid.NewGuid():N}",
             email: $"confirmed_{Guid.NewGuid():N}@example.com");
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, password));
 
         var body500 = await loginResponse.Content.ReadAsStringAsync();
@@ -145,7 +145,7 @@ public class AuthFlowTests
             username: $"refresh_{Guid.NewGuid():N}",
             email: $"refresh_{Guid.NewGuid():N}@example.com");
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, password));
         loginResponse.EnsureSuccessStatusCode();
 
@@ -153,7 +153,7 @@ public class AuthFlowTests
         tokens.Should().NotBeNull();
 
         // Now exchange the refresh token for a new pair
-        var refreshResponse = await _client.PostAsJsonAsync("/api/auth/refresh", tokens!.RefreshToken);
+        var refreshResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", tokens!.RefreshToken);
 
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var newTokens = await refreshResponse.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
@@ -167,7 +167,7 @@ public class AuthFlowTests
     [Fact]
     public async Task Refresh_WithInvalidToken_Returns401()
     {
-        var refreshResponse = await _client.PostAsJsonAsync("/api/auth/refresh", "not-a-real-token");
+        var refreshResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", "not-a-real-token");
 
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -181,13 +181,13 @@ public class AuthFlowTests
             username: $"logout_{Guid.NewGuid():N}",
             email: $"logout_{Guid.NewGuid():N}@example.com");
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, password));
         loginResponse.EnsureSuccessStatusCode();
 
         var tokens = await loginResponse.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
 
-        var logoutResponse = await _client.PostAsJsonAsync("/api/auth/logout", tokens!.RefreshToken);
+        var logoutResponse = await _client.PostAsJsonAsync("/api/v1/auth/logout", tokens!.RefreshToken);
 
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
@@ -195,7 +195,7 @@ public class AuthFlowTests
     [Fact]
     public async Task Logout_WithUnknownToken_Returns400()
     {
-        var logoutResponse = await _client.PostAsJsonAsync("/api/auth/logout", "totally-unknown-token");
+        var logoutResponse = await _client.PostAsJsonAsync("/api/v1/auth/logout", "totally-unknown-token");
 
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -209,15 +209,15 @@ public class AuthFlowTests
             username: $"ral_{Guid.NewGuid():N}",
             email: $"ral_{Guid.NewGuid():N}@example.com");
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login",
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginDto(user.UserName!, password));
         var tokens = await loginResponse.Content.ReadFromJsonAsync<TokenDto>(JsonOpts);
 
         // Logout to revoke the token
-        await _client.PostAsJsonAsync("/api/auth/logout", tokens!.RefreshToken);
+        await _client.PostAsJsonAsync("/api/v1/auth/logout", tokens!.RefreshToken);
 
         // Attempting to refresh with the now-revoked token must fail
-        var refreshResponse = await _client.PostAsJsonAsync("/api/auth/refresh", tokens.RefreshToken);
+        var refreshResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", tokens.RefreshToken);
 
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }

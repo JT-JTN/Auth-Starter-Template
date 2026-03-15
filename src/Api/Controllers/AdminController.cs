@@ -1,6 +1,7 @@
 using Application;
 using Application.DTOs.Admin;
 using Application.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Quartz;
@@ -9,8 +10,9 @@ using System.Security.Claims;
 
 namespace Api.Controllers;
 
+[ApiVersion("1.0")]
 [Authorize(Roles = "Admin")]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [Produces("application/json")]
 public class AdminController : ControllerBase

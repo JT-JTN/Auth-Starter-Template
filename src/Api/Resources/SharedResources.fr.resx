@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute name="xml:space" use="optional" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+
+  <!-- Auth -->
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Identifiants invalides.</value>
+  </data>
+  <data name="EmailNotConfirmed" xml:space="preserve">
+    <value>Veuillez confirmer votre adresse e-mail avant de vous connecter.</value>
+  </data>
+  <data name="AccountLocked" xml:space="preserve">
+    <value>Le compte est verrouillé. Veuillez réessayer ultérieurement.</value>
+  </data>
+  <data name="RegistrationSuccess" xml:space="preserve">
+    <value>Inscription réussie. Veuillez vérifier votre e-mail pour confirmer votre compte.</value>
+  </data>
+  <data name="PasswordMismatch" xml:space="preserve">
+    <value>Les mots de passe ne correspondent pas.</value>
+  </data>
+
+  <!-- General -->
+  <data name="NotFound" xml:space="preserve">
+    <value>La ressource demandée est introuvable.</value>
+  </data>
+  <data name="Forbidden" xml:space="preserve">
+    <value>Vous n'avez pas la permission d'effectuer cette action.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Une erreur inattendue s'est produite. Veuillez réessayer.</value>
+  </data>
+</root>

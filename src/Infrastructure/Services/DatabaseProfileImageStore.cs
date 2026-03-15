@@ -60,7 +60,7 @@ public sealed class DatabaseProfileImageStore : IProfileImageStore
         await _context.SaveChangesAsync(ct);
 
         var baseUrl = _appSettings.ApiBaseUrl.TrimEnd('/');
-        return $"{baseUrl}/api/users/{userId}/profile-image";
+        return $"{baseUrl}/api/v1/users/{userId}/profile-image";
     }
 
     public async Task<(byte[] Data, string ContentType)?> GetAsync(string userId, CancellationToken ct = default)

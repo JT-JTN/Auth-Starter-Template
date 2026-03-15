@@ -1,11 +1,18 @@
+using Api.Hubs;
 using Api.Middleware;
+using Api.Services;
+using Api.Swagger;
+using Application.Services;
+using Asp.Versioning;
 using Infrastructure;
 using Infrastructure.Persistance;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -38,15 +45,25 @@ if (string.IsNullOrEmpty(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 3
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+})
+.AddApiExplorer(options =>
+{
+    // GroupNameFormat "'v'VVV" → "v1", "v1.1", etc.
+    options.GroupNameFormat = "'v'VVV";
+    // Replaces {version:apiVersion} in route templates with the version string in Swagger docs.
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// ConfigureSwaggerOptions generates one SwaggerDoc per discovered API version.
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Auth Starter API",
-        Version = "v1",
-        Description = "ASP.NET Core JWT + Passkey authentication starter template."
-    });
-
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -100,6 +117,10 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
+builder.Services.AddLocalization();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeNotifier, HubRealtimeNotifier>();
+
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Health checks — DB connectivity via EF Core ping
@@ -128,10 +149,15 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    app.UseSwaggerUI(options =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Auth Starter API v1");
-        c.DisplayRequestDuration();
+        foreach (var description in app.DescribeApiVersions())
+        {
+            options.SwaggerEndpoint(
+                $"/swagger/{description.GroupName}/swagger.json",
+                $"Auth Starter API {description.GroupName.ToUpperInvariant()}");
+        }
+        options.DisplayRequestDuration();
     });
 }
 
@@ -141,10 +167,19 @@ app.UseSerilogRequestLogging(opts =>
 });
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
 app.UseHttpsRedirection();
 
 app.UseCors("AllowWebClient");
+
+app.UseRequestLocalization(opts =>
+{
+    var supportedCultures = new[] { "en", "fr", "es" };
+    opts.SetDefaultCulture("en")
+        .AddSupportedCultures(supportedCultures)
+        .AddSupportedUICultures(supportedCultures);
+});
 
 app.UseRateLimiter();
 
@@ -152,6 +187,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Health check endpoint — JSON response with component status
 app.MapHealthChecks("/health", new HealthCheckOptions

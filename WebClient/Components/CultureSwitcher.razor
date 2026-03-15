@@ -1,0 +1,43 @@
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<MudMenu Icon="@Icons.Material.Filled.Language"
+         Color="Color.Inherit"
+         AnchorOrigin="Origin.BottomCenter"
+         TransformOrigin="Origin.TopCenter"
+         Dense="true"
+         aria-label="Change language">
+    @foreach (var culture in _cultures)
+    {
+        <MudMenuItem OnClick="@(() => SetCultureAsync(culture.Code))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText>@culture.Flag</MudText>
+                <MudText>@culture.Name</MudText>
+                @if (_currentCulture == culture.Code)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success" />
+                }
+            </MudStack>
+        </MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    private string _currentCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+    private static readonly (string Code, string Name, string Flag)[] _cultures =
+    [
+        ("en", "English",  "🇬🇧"),
+        ("fr", "Français", "🇫🇷"),
+        ("es", "Español",  "🇪🇸"),
+    ];
+
+    private async Task SetCultureAsync(string cultureCode)
+    {
+        if (_currentCulture == cultureCode) return;
+
+        await JS.InvokeVoidAsync("localStorage.setItem", "app-culture", cultureCode);
+        // Force a full reload so Program.cs reads the new culture before rendering
+        Nav.NavigateTo(Nav.Uri, forceLoad: true);
+    }
+}

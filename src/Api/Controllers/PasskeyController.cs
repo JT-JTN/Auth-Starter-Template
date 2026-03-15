@@ -1,12 +1,14 @@
 using Application.DTOs.Auth;
 using Application.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Api.Controllers;
 
-[Route("api/auth/passkey")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/auth/passkey")]
 [ApiController]
 [Produces("application/json")]
 public class PasskeyController : ControllerBase

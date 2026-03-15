@@ -1,13 +1,15 @@
 using Application.DTOs.User;
 using Application.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Api.Controllers;
 
+[ApiVersion("1.0")]
 [Authorize]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [Produces("application/json")]
 public class UsersController : ControllerBase

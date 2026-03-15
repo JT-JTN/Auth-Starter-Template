@@ -16,6 +16,8 @@
     <PackageReference Include="QRCoder" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 

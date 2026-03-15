@@ -20,6 +20,7 @@ public sealed class AdminService : IAdminService
     private readonly ApplicationDbContext _db;
     private readonly IDateTimeProvider _dateTime;
     private readonly IAuditLogService _audit;
+    private readonly IRealtimeNotifier _notifier;
 
     public AdminService(
         UserManager<User> userManager,
@@ -28,7 +29,8 @@ public sealed class AdminService : IAdminService
         IUnitOfWork uow,
         ApplicationDbContext db,
         IDateTimeProvider dateTime,
-        IAuditLogService audit)
+        IAuditLogService audit,
+        IRealtimeNotifier notifier)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -37,6 +39,7 @@ public sealed class AdminService : IAdminService
         _db = db;
         _dateTime = dateTime;
         _audit = audit;
+        _notifier = notifier;
     }
 
     public async Task<PaginatedResultWithStatus<AdminUserSummaryDto>> GetUsersAsync(int page, int pageSize, string? search)
@@ -134,6 +137,9 @@ public sealed class AdminService : IAdminService
             return Result.Failure(string.Join("; ", result.Errors.Select(e => e.Description)));
 
         await _audit.RecordAsync(userId, AuditActions.RoleAssigned, entityType: "Role", entityId: role);
+        await _notifier.NotifyUserAsync(userId,
+            "Role Assigned",
+            $"The '{role}' role has been granted to your account by an administrator.");
         return Result.Success();
     }
 
@@ -151,6 +157,10 @@ public sealed class AdminService : IAdminService
             return Result.Failure(string.Join("; ", result.Errors.Select(e => e.Description)));
 
         await _audit.RecordAsync(userId, AuditActions.RoleRemoved, entityType: "Role", entityId: role);
+        await _notifier.NotifyUserAsync(userId,
+            "Role Removed",
+            $"The '{role}' role has been removed from your account by an administrator.",
+            "warning");
         return Result.Success();
     }
 
@@ -168,6 +178,10 @@ public sealed class AdminService : IAdminService
         await _tokenRepository.UpdateRefreshTokenAsync(token);
         await _uow.SaveChangesAsync();
         await _audit.RecordAsync(userId, AuditActions.SessionRevoked, entityType: "Session", entityId: sessionId.ToString());
+        await _notifier.NotifyUserAsync(userId,
+            "Session Revoked",
+            "One of your active sessions was revoked by an administrator.",
+            "warning");
         return Result.Success();
     }
 
@@ -180,6 +194,10 @@ public sealed class AdminService : IAdminService
         await _tokenRepository.DeleteAllRefreshTokensForUserAsync(userId);
         await _uow.SaveChangesAsync();
         await _audit.RecordAsync(userId, AuditActions.AllSessionsRevoked);
+        await _notifier.NotifyUserAsync(userId,
+            "All Sessions Revoked",
+            "All your active sessions have been revoked by an administrator.",
+            "error");
         return Result.Success();
     }
 }

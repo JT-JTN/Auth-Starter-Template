@@ -1,5 +1,6 @@
 using Application.DTOs.Auth;
 using Application.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -8,7 +9,8 @@ using System.Security.Claims;
 
 namespace Api.Controllers;
 
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [Produces("application/json")]
 public class AuthController : ControllerBase

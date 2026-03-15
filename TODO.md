@@ -114,8 +114,8 @@ Legend: ✅ Done · 🔄 In Progress · ⬜ Pending
 - [ ] "Remember me" extended refresh token lifetime option
 - [ ] New device / new IP login email notification
 - [ ] Account lockout email notification (you've been locked out, here's an unlock link)
-- [ ] Localization / i18n skeleton
-- [ ] SignalR hub — real-time notification delivery (replace in-memory `NotificationService`)
+- [x] Localization / i18n skeleton
+- [x] SignalR hub — real-time notification delivery (replace in-memory `NotificationService`)
 - [ ] API versioning (`/api/v1/...`)
 - [ ] Configurable password policy in appsettings (min length, complexity requirements)
 - [ ] Request/response logging middleware with correlation IDs

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute name="xml:space" use="optional" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+
+  <!-- Navigation -->
+  <data name="Nav_Home" xml:space="preserve">
+    <value>Accueil</value>
+  </data>
+  <data name="Nav_Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="Nav_Admin" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+
+  <!-- Auth -->
+  <data name="Login_Title" xml:space="preserve">
+    <value>Connexion</value>
+  </data>
+  <data name="Login_Username" xml:space="preserve">
+    <value>Nom d'utilisateur ou e-mail</value>
+  </data>
+  <data name="Login_Password" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="Login_Submit" xml:space="preserve">
+    <value>Se connecter</value>
+  </data>
+  <data name="Register_Title" xml:space="preserve">
+    <value>Créer un compte</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Se déconnecter</value>
+  </data>
+
+  <!-- Profile -->
+  <data name="Profile_Title" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="Profile_Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Profile_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+
+  <!-- Common -->
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement...</value>
+  </data>
+  <data name="Error_Generic" xml:space="preserve">
+    <value>Une erreur s'est produite. Veuillez réessayer.</value>
+  </data>
+  <data name="Success_Saved" xml:space="preserve">
+    <value>Modifications enregistrées avec succès.</value>
+  </data>
+</root>
