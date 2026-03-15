@@ -24,6 +24,7 @@
     <PackageReference Include="Fido2.AspNet" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="MimeKit" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Quartz" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
   </ItemGroup>

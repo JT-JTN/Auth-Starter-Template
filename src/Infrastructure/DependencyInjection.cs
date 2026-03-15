@@ -128,6 +128,25 @@ public static class DependencyInjection
         // Fido2NetLib — handles WebAuthn ceremonies with server-side challenge storage (IMemoryCache).
         // This avoids the cross-origin cookie problem of Identity's built-in passkey methods.
         services.AddMemoryCache();
+
+        // Distributed Cache — Redis when Redis:Enabled = true, otherwise in-process memory.
+        // IDistributedCache is available for injection anywhere caching is needed.
+        var redisSettings = configuration
+            .GetSection(RedisSettings.SectionName)
+            .Get<RedisSettings>() ?? new RedisSettings();
+
+        if (redisSettings.Enabled)
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisSettings.ConnectionString;
+                options.InstanceName = redisSettings.InstanceName;
+            });
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
         services.AddFido2(options =>
         {
             options.ServerDomain = configuration["Fido2:ServerDomain"] ?? "localhost";
@@ -136,12 +155,13 @@ public static class DependencyInjection
             options.TimestampDriftTolerance = 300000;
         });
 
-        // Email + App + S3 + Policy Options
+        // Email + App + S3 + Policy + Redis Options
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
         services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
         services.Configure<S3Settings>(configuration.GetSection(S3Settings.SectionName));
         services.Configure<PasswordPolicySettings>(configuration.GetSection(PasswordPolicySettings.SectionName));
         services.Configure<RequestLoggingSettings>(configuration.GetSection(RequestLoggingSettings.SectionName));
+        services.Configure<RedisSettings>(configuration.GetSection(RedisSettings.SectionName));
 
         // Core infrastructure
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();

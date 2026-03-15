@@ -64,6 +64,11 @@
     <PackageVersion Include="MudBlazor" Version="9.1.0" />
   </ItemGroup>
 
+  <!-- Caching -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
+  </ItemGroup>
+
   <!-- Background Jobs -->
   <ItemGroup>
     <PackageVersion Include="Quartz" Version="3.13.1" />
