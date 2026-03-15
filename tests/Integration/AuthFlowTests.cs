@@ -11,7 +11,8 @@ namespace Integration.Tests;
 /// End-to-end integration tests for the auth flow.
 /// Uses a real ASP.NET Core pipeline backed by an InMemory database.
 /// </summary>
-public class AuthFlowTests : IClassFixture<AuthWebApplicationFactory>
+[Collection("Integration")]
+public class AuthFlowTests
 {
     private readonly AuthWebApplicationFactory _factory;
     private readonly HttpClient _client;
