@@ -395,4 +395,8 @@ dotnet nuget push release-artifacts/JTNetworx.AuthStarterTemplate.*.nupkg \
 
 ## License
 
-[MIT](LICENSE.txt)
+This project is licensed under the [MIT License](LICENSE.txt).
+
+Copyright (c) 2025 JT Networx
+
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. THE AUTHORS OR COPYRIGHT HOLDERS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
