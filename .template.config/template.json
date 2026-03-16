@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "John Thomas",
+  "classifications": [
+    "Web",
+    "API",
+    "Blazor",
+    "Clean Architecture",
+    "Authentication"
+  ],
+  "identity": "JohnThomas.AuthStarterTemplate.CSharp",
+  "name": "ASP.NET Core Auth Starter",
+  "shortName": "auth-starter",
+  "description": "Full-stack auth starter: ASP.NET Core 10 API + Blazor WASM, Clean Architecture, JWT + refresh tokens, passkeys (WebAuthn), roles, admin panel, audit log, 2FA, GDPR, rate limiting, idempotency, correlation IDs, output caching, SignalR notifications, and localization.",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "AuthStarterTemplate",
+  "preferNameDirectory": true,
+  "primaryOutputs": [
+    {
+      "path": "AuthStarterTemplate.slnx"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "description": "Restore NuGet packages",
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "exclude": [
+        ".git/**",
+        ".gitignore",
+        ".vs/**",
+        "**/.claude/**",
+        "**/bin/**",
+        "**/obj/**",
+        "**/logs/**",
+        "**/TestResults/**",
+        "**/*.user",
+        "**/*.suo",
+        "template-pack.csproj",
+        ".template.config/**",
+        "assets/Icon.pdn"
+      ]
+    }
+  ]
+}

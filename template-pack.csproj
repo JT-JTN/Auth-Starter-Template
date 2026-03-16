@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageType>Template</PackageType>
+    <PackageVersion>1.0.0</PackageVersion>
+    <PackageId>JohnThomas.AuthStarterTemplate</PackageId>
+    <Title>ASP.NET Core Auth Starter</Title>
+    <Authors>John Thomas</Authors>
+    <Description>Full-stack auth starter: ASP.NET Core 10 API + Blazor WASM, Clean Architecture, JWT + refresh tokens, passkeys (WebAuthn), roles, admin panel, audit log, 2FA, GDPR, rate limiting, idempotency, correlation IDs, output caching, SignalR notifications, and localization.</Description>
+    <PackageTags>aspnetcore;blazor;blazor-wasm;authentication;jwt;passkeys;webauthn;clean-architecture;identity;signalr;template;dotnet-new</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/JohnThomasJTN/Auth-Starter-Template</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/JohnThomasJTN/Auth-Starter-Template</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon.png</PackageIcon>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoBuild>true</NoBuild>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="**\*"
+             Exclude="**\bin\**;**\obj\**;**\.git\**;**\.vs\**;**\.claude\**;**\logs\**;**\TestResults\**;**\*.user;**\*.suo;template-pack.csproj" />
+    <Content Include="assets\icon.png" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
