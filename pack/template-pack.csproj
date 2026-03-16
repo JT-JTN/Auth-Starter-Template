@@ -10,8 +10,8 @@
     <Description>Full-stack auth starter: ASP.NET Core 10 API + Blazor WASM, Clean Architecture, JWT + refresh tokens, passkeys (WebAuthn), roles, admin panel, audit log, 2FA, GDPR, rate limiting, idempotency, correlation IDs, output caching, SignalR notifications, and localization.</Description>
     <PackageTags>aspnetcore;blazor;blazor-wasm;authentication;jwt;passkeys;webauthn;clean-architecture;identity;signalr;template;dotnet-new</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/JTNetworx/Auth-Starter-Template</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/JTNetworx/Auth-Starter-Template</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/JT-JTN/Auth-Starter-Template</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/JT-JTN/Auth-Starter-Template</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>icon-192.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

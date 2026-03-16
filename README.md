@@ -1,6 +1,6 @@
 # ASP.NET Core Auth Starter
 
-[![CI](https://github.com/JohnThomasJTN/Auth-Starter-Template/actions/workflows/ci.yml/badge.svg)](https://github.com/JohnThomasJTN/Auth-Starter-Template/actions/workflows/ci.yml)
+[![CI](https://github.com/JT-JTN/Auth-Starter-Template/actions/workflows/ci.yml/badge.svg)](https://github.com/JT-JTN/Auth-Starter-Template/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/JTNetworx.AuthStarterTemplate?label=nuget)](https://www.nuget.org/packages/JTNetworx.AuthStarterTemplate)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
@@ -22,7 +22,7 @@ cd MyApp
 ### Or clone directly
 
 ```bash
-git clone https://github.com/JohnThomasJTN/Auth-Starter-Template.git
+git clone https://github.com/JT-JTN/Auth-Starter-Template.git
 cd Auth-Starter-Template
 ```
 
