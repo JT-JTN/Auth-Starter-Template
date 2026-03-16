@@ -46,9 +46,9 @@
         "**/TestResults/**",
         "**/*.user",
         "**/*.suo",
-        "template-pack.csproj",
         ".template.config/**",
-        "assets/Icon.pdn"
+        "assets/Icon.pdn",
+        "pack/**"
       ]
     }
   ]

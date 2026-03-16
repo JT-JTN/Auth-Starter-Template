@@ -20,10 +20,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore packages
-        run: dotnet restore AuthStarterTemplate.slnx
+        run: dotnet restore
 
       - name: Build
-        run: dotnet build AuthStarterTemplate.slnx --no-restore --configuration Release
+        run: dotnet build --no-restore --configuration Release
 
       - name: Run unit tests
         run: dotnet test tests/Unit/Unit.Tests.csproj --no-build --configuration Release --verbosity normal --logger trx --results-directory TestResults

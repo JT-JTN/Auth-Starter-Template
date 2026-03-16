@@ -23,9 +23,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="**\*"
-             Exclude="**\bin\**;**\obj\**;**\.git\**;**\.vs\**;**\.claude\**;**\logs\**;**\TestResults\**;**\*.user;**\*.suo;template-pack.csproj" />
-    <Content Include="assets\icon-192.png" PackagePath="\" />
+    <Content Include="..\**\*"
+             Exclude="..\**\bin\**;..\**\obj\**;..\**\.git\**;..\**\.vs\**;..\**\.claude\**;..\**\logs\**;..\**\TestResults\**;..\**\*.user;..\**\*.suo;..\pack\**" />
+    <Content Include="..\assets\icon-192.png" PackagePath="\" />
   </ItemGroup>
 
 </Project>
