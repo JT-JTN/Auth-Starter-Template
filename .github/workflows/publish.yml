@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version being published (e.g. 1.0.2)'
+        description: 'Version being published (e.g. 1.0.4)'
         required: true
 
 jobs:
   publish:
     name: Pack, Sign, and Publish
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -27,23 +27,25 @@ jobs:
       - name: Pack
         run: dotnet pack pack/template-pack.csproj -c Release -o ./release-artifacts
 
-      - name: Sign with Azure Trusted Signing
+      - name: Install sign CLI
         if: env.SIGNING_ACCOUNT != ''
         env:
           SIGNING_ACCOUNT: ${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME }}
-        uses: azure/trusted-signing-action@v0.3.20
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
-          trusted-signing-account-name: ${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME }}
-          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_CERT_PROFILE }}
-          files-folder: ${{ github.workspace }}/release-artifacts
-          files-folder-filter: nupkg
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
+        run: dotnet tool install -g sign --prerelease
+
+      - name: Sign NuGet package with Azure Trusted Signing
+        if: env.SIGNING_ACCOUNT != ''
+        env:
+          SIGNING_ACCOUNT: ${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME }}
+        run: |
+          sign code trusted-signing release-artifacts/*.nupkg \
+            --trusted-signing-endpoint "${{ secrets.TRUSTED_SIGNING_ENDPOINT }}" \
+            --trusted-signing-account "${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME }}" \
+            --trusted-signing-certificate-profile "${{ secrets.TRUSTED_SIGNING_CERT_PROFILE }}" \
+            --azure-tenant-id "${{ secrets.AZURE_TENANT_ID }}" \
+            --azure-client-id "${{ secrets.AZURE_CLIENT_ID }}" \
+            --azure-client-secret "${{ secrets.AZURE_CLIENT_SECRET }}" \
+            --timestamp-url http://timestamp.acs.microsoft.com
 
       - name: Push to NuGet
         run: |
