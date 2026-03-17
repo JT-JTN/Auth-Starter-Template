@@ -32,7 +32,8 @@
     }
   ],
   "guids": [
-    "ad7bbc53-294c-410d-bba2-305edd3f3a1e"
+    "ad7bbc53-294c-410d-bba2-305edd3f3a1e",
+    "c1e491c6-de2c-4239-a785-e07e4a15226c"
   ],
   "sources": [
     {
@@ -51,7 +52,10 @@
         "**/*.suo",
         ".template.config/**",
         "assets/Icon.pdn",
-        "pack/**"
+        "pack/**",
+        "release-artifacts/**",
+        "AZURE_SIGNING_SETUP.md",
+        ".github/workflows/publish.yml"
       ]
     }
   ]

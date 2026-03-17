@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/JTNetworx/Auth-Starter-Template/actions/workflows/ci.yml/badge.svg)](https://github.com/JTNetworx/Auth-Starter-Template/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/JTNetworx.AuthStarterTemplate?label=nuget)](https://www.nuget.org/packages/JTNetworx.AuthStarterTemplate)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/JTNetworx.AuthStarterTemplate?label=downloads)](https://www.nuget.org/packages/JTNetworx.AuthStarterTemplate)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
