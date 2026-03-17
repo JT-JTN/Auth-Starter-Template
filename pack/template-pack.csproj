@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <PackageType>Template</PackageType>
-    <PackageVersion>1.0.8</PackageVersion>
-    <PackageReleaseNotes>v1.0.8 — Removed Azure Trusted Signing from the publish pipeline. Azure Trusted Signing uses short-lived auto-rotating certificates that are incompatible with NuGet.org's package signing requirements. Apologies for the version churn in v1.0.4–1.0.7 as we worked through this. The template content itself is unchanged.</PackageReleaseNotes>
+    <PackageVersion>1.0.9</PackageVersion>
+    <PackageReleaseNotes>v1.0.9 — Template hygiene: exclude EF migrations (consumers run dotnet ef migrations add InitialCreate), TODO.md, test data SQL, and dev-specific files from template output. Replace repo README with a clean getting-started guide. LICENSE copyright now uses a placeholder for consumers to fill in.</PackageReleaseNotes>
     <PackageId>JTNetworx.AuthStarterTemplate</PackageId>
     <Title>ASP.NET Core Auth Starter</Title>
     <Authors>JT Networx</Authors>
@@ -28,7 +28,7 @@
   <ItemGroup>
     <Content Include="..\**\*"
              PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)"
-             Exclude="..\**\bin\**;..\**\obj\**;..\**\.git\**;..\**\.vs\**;..\**\.claude\**;..\**\logs\**;..\**\TestResults\**;..\**\*.user;..\**\*.suo;..\pack\**;..\release-artifacts\**" />
+             Exclude="..\**\bin\**;..\**\obj\**;..\**\.git\**;..\**\.vs\**;..\**\.claude\**;..\**\logs\**;..\**\TestResults\**;..\**\*.user;..\**\*.suo;..\pack\**;..\release-artifacts\**;..\TODO.md;..\sql scripts\InsertStaleTestData.sql;..\**\Migrations\**;..\AZURE_SIGNING_SETUP.md" />
     <None Include="..\assets\icon-192.png" Pack="true" PackagePath="\" />
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>

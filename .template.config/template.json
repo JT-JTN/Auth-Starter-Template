@@ -54,8 +54,15 @@
         "assets/Icon.pdn",
         "pack/**",
         "release-artifacts/**",
-        ".github/workflows/publish.yml"
-      ]
+        ".github/workflows/publish.yml",
+        "**/Migrations/**",
+        "TODO.md",
+        "sql scripts/InsertStaleTestData.sql",
+        "README.md"
+      ],
+      "rename": {
+        "README.template.md": "README.md"
+      }
     }
   ]
 }
