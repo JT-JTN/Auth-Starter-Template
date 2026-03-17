@@ -18,6 +18,7 @@ jobs:
   publish:
     name: Pack, Sign, and Publish
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout
