@@ -28,7 +28,9 @@ jobs:
         run: dotnet pack pack/template-pack.csproj -c Release -o ./release-artifacts
 
       - name: Sign with Azure Trusted Signing
-        if: ${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME != '' }}
+        if: env.SIGNING_ACCOUNT != ''
+        env:
+          SIGNING_ACCOUNT: ${{ secrets.TRUSTED_SIGNING_ACCOUNT_NAME }}
         uses: azure/trusted-signing-action@v0.3.20
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
